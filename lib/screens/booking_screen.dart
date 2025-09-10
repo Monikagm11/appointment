@@ -4,16 +4,46 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  List<int> yearList = [2025, 2026];
-  int selectedYear = 2025;
-  int selectedIndex = 1;
+  int selectedYear = DateTime.now().year;
+  DateTime _focusedDate = DateTime.now();
+  DateTime? _selectedDate;
   int selectedShift = 0;
 
-  final List<String> days = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
-  final List<int> dates = [10, 11, 12, 13, 14, 15, 16];
+  List<int> get yearList {
+    final now = DateTime.now();
+    return List.generate(2, (i) => now.year + i);
+  }
+
+  void _prevMonth() {
+    setState(() {
+      _focusedDate = DateTime(_focusedDate.year, _focusedDate.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _focusedDate = DateTime(_focusedDate.year, _focusedDate.month + 1, 1);
+    });
+  }
+
+  void _pickYear(int year) {
+    setState(() {
+      _focusedDate = DateTime(year, _focusedDate.month, 1);
+      selectedYear = year;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final year = _focusedDate.year;
+    final month = _focusedDate.month;
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+
+    final days = List.generate(
+      daysInMonth,
+      (i) => DateTime(year, month, i + 1),
+    );
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -76,75 +106,92 @@ class _BookingScreenState extends State<BookingScreen> {
                             ),
                           )
                           .toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          selectedYear = val!;
-                        });
-                      },
+                      onChanged: (val) => _pickYear(val!),
                     ),
                     Spacer(),
-                    IconButton(icon: Icon(Icons.arrow_left), onPressed: () {}),
+                    IconButton(
+                      icon: Icon(Icons.arrow_left),
+                      onPressed: _prevMonth,
+                    ),
                     Text(
-                      "September",
+                      DateFormat.MMMM().format(_focusedDate),
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    IconButton(icon: Icon(Icons.arrow_right), onPressed: () {}),
+                    IconButton(
+                      icon: Icon(Icons.arrow_right),
+                      onPressed: _nextMonth,
+                    ),
                   ],
                 ),
                 SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(days.length, (i) {
-                    bool selected = i == selectedIndex;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedIndex = i),
-                        child: Container(
-                          width: 50,
-                          decoration: BoxDecoration(
-                            color:
-                                selected ? Colors.green[100] : Colors.blue[50],
-                            border: Border.all(
-                              width: 2,
-                              color: selected ? Colors.green : Colors.blue,
+                Container(
+                  height: 90,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: days.length,
+                    itemBuilder: (context, i) {
+                      final date = days[i];
+                      final selected = _selectedDate != null &&
+                          DateUtils.isSameDay(_selectedDate, date);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedDate = date),
+                          child: Container(
+                            width: 60,
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? Colors.green[100]
+                                  : Colors.blue[50],
+                              border: Border.all(
+                                width: 2,
+                                color: selected ? Colors.green : Colors.blue,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 4),
-                          child: Column(
-                            children: [
-                              Text(
-                                days[i],
-                                style: TextStyle(
-                                  color: selected ? Colors.green : Colors.blue,
-                                  fontWeight: selected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                            padding: EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  DateFormat.E().format(date),
+                                  style: TextStyle(
+                                    color:
+                                        selected ? Colors.green : Colors.blue,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                dates[i].toString(),
-                                style: TextStyle(
-                                  color: selected ? Colors.green : Colors.blue,
-                                  fontWeight: selected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                                SizedBox(height: 4),
+                                Text(
+                                  "${date.day}",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color:
+                                        selected ? Colors.green : Colors.blue,
+                                    fontWeight: selected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    },
+                  ),
                 ),
                 SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    '${dates[selectedIndex]}th September, $selectedYear',
+                    _selectedDate == null
+                        ? 'Please select a date'
+                        : '${DateFormat.d().format(_selectedDate!)} '
+                            '${DateFormat.MMMM().format(_selectedDate!)}, $selectedYear',
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w500,
